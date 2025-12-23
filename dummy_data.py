@@ -1,9 +1,3 @@
-"""
-Dummy data generator for testing multi-panel IoT system
-Simulates ESP32-02 and ESP32-03 sending sensor data to the API
-ESP32-01 is real hardware and should not be simulated
-"""
-
 import requests
 import time
 import random
@@ -11,27 +5,24 @@ from datetime import datetime
 
 API_BASE = "http://192.168.43.243:3002"
 
-# Only simulate ESP32-02 and ESP32-03 (ESP32-01 is real hardware)
 PANELS = {
     "ESP32-02": {
         "base_voltage": 225.0,
         "base_current": 0.8,
-        "variation": 0.15,  # 15% variation
+        "variation": 0.15,  
         "relay_status": "ON"
     },
     "ESP32-03": {
         "base_voltage": 218.0,
         "base_current": 1.2,
-        "variation": 0.2,  # 20% variation
+        "variation": 0.2, 
         "relay_status": "ON"
     }
 }
 
 def generate_sensor_data(panel_id):
-    """Generate realistic sensor data for a panel"""
     panel = PANELS[panel_id]
     
-    # Add random variation
     voltage = panel["base_voltage"] * (1 + random.uniform(-panel["variation"], panel["variation"]))
     current = panel["base_current"] * (1 + random.uniform(-panel["variation"], panel["variation"]))
     power = voltage * current
@@ -46,27 +37,24 @@ def generate_sensor_data(panel_id):
     }
 
 def send_sensor_data(data):
-    """Send sensor data to API which stores it in Supabase"""
     try:
-        # POST to /monitoring endpoint to store in database
         r = requests.post(f"{API_BASE}/monitoring", json=data, timeout=3)
         if r.status_code == 200:
-            print(f"✓ {data['esp_id']}: V={data['voltage']}V, I={data['current']}A, P={data['power']}W → Stored in DB")
+            print(f"{data['esp_id']}: V={data['voltage']}V, I={data['current']}A, P={data['power']}W → Stored in DB")
             return True
         else:
-            print(f"✗ Failed {data['esp_id']} → Status {r.status_code}: {r.text}")
+            print(f"Failed {data['esp_id']} → Status {r.status_code}: {r.text}")
             return False
     except requests.exceptions.ConnectionError:
-        print(f"✗ Connection error - Is the server running at {API_BASE}?")
+        print(f"Connection error - Is the server running at {API_BASE}?")
         return False
     except Exception as e:
-        print(f"✗ Error sending {data['esp_id']}: {e}")
+        print(f"Error sending {data['esp_id']}: {e}")
         return False
 
 def simulate_relay_event(panel_id, command):
-    """Simulate a relay event"""
     payload = {
-        "relay_id": f"Relay-{panel_id}",  # Format: Relay-ESP32-02, Relay-ESP32-03
+        "relay_id": f"Relay-{panel_id}",  
         "command": command,
         "reason": "SIMULATION",
         "initiated_by": "dummy_script"
@@ -76,12 +64,12 @@ def simulate_relay_event(panel_id, command):
         r = requests.post(f"{API_BASE}/relay", json=payload, timeout=3)
         if r.status_code == 200:
             PANELS[panel_id]["relay_status"] = command
-            print(f"✓ {panel_id} relay → {command}")
+            print(f"{panel_id} relay → {command}")
             return True
         else:
-            print(f"✗ Relay command failed: {r.status_code}")
+            print(f"Relay command failed: {r.status_code}")
     except Exception as e:
-        print(f"✗ Relay error: {e}")
+        print(f"Relay error: {e}")
     return False
 
 def main():
@@ -94,14 +82,13 @@ def main():
     print(f"Data will be stored in Supabase sensor_data table")
     print("Press Ctrl+C to stop\n")
     
-    # Test connection first
     print("Testing API connection...")
     try:
         r = requests.get(f"{API_BASE}/", timeout=3)
         if r.status_code == 200:
-            print("✓ API server is reachable\n")
+            print("API server is reachable\n")
         else:
-            print(f"⚠ API responded with status {r.status_code}\n")
+            print(f"API responded with status {r.status_code}\n")
     except:
         print(f"✗ Cannot connect to {API_BASE}")
         print("Make sure your Node.js server is running!")
@@ -113,21 +100,17 @@ def main():
         while True:
             iteration += 1
             print(f"\n--- Iteration {iteration} ({datetime.now().strftime('%H:%M:%S')}) ---")
-            
-            # Generate and send data for each dummy panel
             for panel_id in PANELS.keys():
                 data = generate_sensor_data(panel_id)
                 send_sensor_data(data)
-            
-            # Every 20 iterations, randomly toggle a relay
             if iteration % 20 == 0:
                 panel = random.choice(list(PANELS.keys()))
                 current_status = PANELS[panel]["relay_status"]
                 new_command = "OFF" if current_status == "ON" else "ON"
-                print(f"\n🔄 Toggling {panel} relay: {current_status} → {new_command}")
+                print(f"\nToggling {panel} relay: {current_status} → {new_command}")
                 simulate_relay_event(panel, new_command)
             
-            time.sleep(3)  # Send data every 3 seconds
+            time.sleep(3) 
             
     except KeyboardInterrupt:
         print("\n\n" + "=" * 70)
